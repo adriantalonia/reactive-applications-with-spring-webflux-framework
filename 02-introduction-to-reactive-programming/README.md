@@ -12,6 +12,20 @@
     - [Relationship Between Components](#relationship-between-components)
   - [Summary](#summary)
   - [Next Steps](#next-steps)
+- [Introduction to Reactive Programming](#introduction-to-reactive-programming)
+  - [Overview](#overview)
+  - [Key Concepts](#key-concepts)
+    - [1. **Non-Blocking vs. Asynchronous Operations**](#1-non-blocking-vs-asynchronous-operations)
+    - [2. **Core Principles of Reactive Programming**](#2-core-principles-of-reactive-programming)
+      - [**Data Streams**](#data-streams)
+      - [**Propagation of Change**](#propagation-of-change)
+    - [3. **Advantages of Reactive Programming**](#3-advantages-of-reactive-programming)
+  - [Functional Programming in Reactive Applications](#functional-programming-in-reactive-applications)
+    - [**Imperative vs. Functional Programming**](#imperative-vs-functional-programming)
+      - [**Imperative Approach (Traditional Spring MVC Example)**](#imperative-approach-traditional-spring-mvc-example)
+      - [**Functional Approach (Reactive Programming Example)**](#functional-approach-reactive-programming-example)
+    - [**Example: Converting to Functional Programming**](#example-converting-to-functional-programming)
+  - [Conclusion](#conclusion)
 
 
 ## Introduction
@@ -55,5 +69,68 @@ Reactive programming in Spring follows the **Reactive Streams Specification**, a
 
 ## Next Steps
 In the following lessons, we will explore these concepts in more detail and build a **fully functional reactive application** using **Spring WebFlux**.
+
+---
+
+
+# Introduction to Reactive Programming
+
+## Overview
+Reactive programming enables the development of non-blocking applications that can efficiently handle both asynchronous and synchronous operations. It is particularly useful for applications that need to support a large number of concurrent users.
+
+## Key Concepts
+
+### 1. **Non-Blocking vs. Asynchronous Operations**
+- Reactive applications are non-blocking but do not necessarily need to be asynchronous.
+- Synchronous operations can still be part of a reactive system, particularly when working with in-memory data or business logic that does not involve I/O operations.
+
+### 2. **Core Principles of Reactive Programming**
+#### **Data Streams**
+- A data stream is a sequence of data elements made available over time.
+- Similar to a continuous flow of data, like water in a river.
+- Reactive programming processes each element as it arrives instead of waiting for the entire dataset.
+
+#### **Propagation of Change**
+- When data changes, the change automatically propagates through the system.
+- Similar to spreadsheet formulas, where updating one cell updates all dependent cells.
+
+### 3. **Advantages of Reactive Programming**
+- Efficiently handles large-scale concurrent operations.
+- Uses functional programming concepts for cleaner, more maintainable code.
+- Minimizes the need for explicit flow control structures like `if-else` and `try-catch`.
+
+## Functional Programming in Reactive Applications
+Reactive programming leverages a functional programming style rather than an imperative approach. This involves:
+- Using **reactive streams** to handle data flow.
+- Implementing **Lambda functions** for concise, readable code.
+- Utilizing **operators** like `map` and `filter` for data processing.
+
+### **Imperative vs. Functional Programming**
+#### **Imperative Approach (Traditional Spring MVC Example)**
+- Explicitly stores values in variables.
+- Uses `if-else` conditions to control program flow.
+- Handles errors with `try-catch` blocks.
+
+#### **Functional Approach (Reactive Programming Example)**
+- Uses **function composition** instead of step-by-step instructions.
+- Chains together operators in a **pipeline** to process data.
+- Replaces `if-else` with **operators** like `switchIfEmpty`.
+
+### **Example: Converting to Functional Programming**
+```typescript
+getUserById(id: string) {
+  return userRepository.findById(id)
+    .map(user -> transform(user))
+    .switchIfEmpty(Mono.just(defaultUser));
+}
+```
+- No explicit variables.
+- No `if-else` or `try-catch` blocks.
+- Uses `map` to transform data and `switchIfEmpty` to handle missing results.
+
+## Conclusion
+Reactive programming allows developers to build efficient, scalable applications using functional programming techniques. By leveraging reactive streams and operators, developers can create **non-blocking** and **highly concurrent** systems with cleaner and more maintainable code.
+
+In upcoming lessons, you will explore various **reactive operators** and learn how to apply them effectively in real-world applications.
 
 
