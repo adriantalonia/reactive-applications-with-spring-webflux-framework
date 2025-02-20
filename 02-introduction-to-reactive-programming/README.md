@@ -26,12 +26,33 @@
       - [**Functional Approach (Reactive Programming Example)**](#functional-approach-reactive-programming-example)
     - [**Example: Converting to Functional Programming**](#example-converting-to-functional-programming)
   - [Conclusion](#conclusion)
+- [Reactive Data Streams in Spring Applications](#reactive-data-streams-in-spring-applications)
+  - [Key Concepts](#key-concepts-1)
+    - [1. Data Streaming in Reactive Applications](#1-data-streaming-in-reactive-applications)
+    - [2. Publisher and Subscriber](#2-publisher-and-subscriber)
+    - [3. Controlling Data Flow](#3-controlling-data-flow)
+    - [4. Backpressure](#4-backpressure)
+  - [Example](#example)
+  - [Summary](#summary-1)
+  - [To-Do](#to-do)
+- [Backpressure and Data Streams in Reactive Programming](#backpressure-and-data-streams-in-reactive-programming)
+  - [Key Concepts](#key-concepts-2)
+    - [What is Backpressure?](#what-is-backpressure)
+    - [How Backpressure Works](#how-backpressure-works)
+    - [Default Behavior](#default-behavior)
+    - [Importance of Backpressure](#importance-of-backpressure)
+  - [Examples](#examples)
+    - [Example 1: Using the Request Method](#example-1-using-the-request-method)
+    - [Example 2: Default Behavior](#example-2-default-behavior)
+    - [Example 3: Handling Slow Subscribers](#example-3-handling-slow-subscribers)
+  - [Summary](#summary-2)
+    - [Key Takeaways](#key-takeaways)
 
 
 ## Introduction
 This course covers how to create reactive, non-blocking applications using the **Spring Framework** and its **Spring WebFlux** module. 
 
-![image](./SpringFrameworkandReactiveSpecification.png)
+![image](./resources/images/SpringFrameworkandReactiveSpecification.png)
 
 ## What is Spring WebFlux?
 Spring Framework supports both **traditional non-reactive** and **reactive** applications. To enable reactive programming, Spring provides **Spring WebFlux**, a module designed for building **reactive applications**.
@@ -133,4 +154,131 @@ Reactive programming allows developers to build efficient, scalable applications
 
 In upcoming lessons, you will explore various **reactive operators** and learn how to apply them effectively in real-world applications.
 
+---
+
+# Reactive Data Streams in Spring Applications
+
+This lesson explores the flow of data in reactive programming, emphasizing how data streams are processed between components in a reactive Spring application. Below are key concepts, examples, and takeaways to help understand reactive data streams and their implementation using the Reactive Streams specification.
+
+![image](./resources/images/datastream.png)
+
+## Key Concepts
+
+### 1. Data Streaming in Reactive Applications
+Reactive applications process items as they arrive rather than waiting for all items to be ready. For example:
+
+- A database retrieves 500 records.
+- Instead of sending all records as one large collection, they are streamed one by one to the subscriber.
+- The subscriber processes each item as it arrives, creating a continuous and asynchronous flow.
+
+Benefits:
+- **Memory Efficiency:** No need to hold all records in memory.
+- **Non-blocking:** The application can handle other tasks while processing items.
+- **Streaming:** Results can be sent to the client even before all records are retrieved.
+
+### 2. Publisher and Subscriber
+These terms come from the Reactive Streams specification:
+- **Publisher:** Emits a sequence of items.
+- **Subscriber:** Consumes items from the publisher according to its demand.
+
+Flow of data:
+- The subscriber calls the `subscribe()` method on the publisher to initiate the subscription process.
+- The publisher sends a `subscription` object to the subscriber.
+- The subscriber uses this object to request items and control the rate of data flow.
+- The publisher calls the `onNext()` method to deliver each item one by one.
+- Once all items are sent, the publisher calls `onComplete()`. If an error occurs, `onError()` is called instead.
+
+![image](./resources/images/datastream2.png)
+
+### 3. Controlling Data Flow
+Subscribers can control the flow of data by specifying how many items to request at a time using the `request()` method. This mechanism helps manage data processing rates and prevents overload.
+
+### 4. Backpressure
+If the publisher produces data faster than the subscriber can consume it, backpressure comes into play to manage the flow of data efficiently.
+
+## Example
+A simple example of data streaming between components:
+
+1. **Data Access Object (DAO):** Acts as a publisher and retrieves records from the database.
+2. **Service Layer:** Acts as a subscriber to the DAO and a publisher to the controller.
+3. **Controller:** Acts as the final subscriber that sends processed data to the client.
+
+Example code snippet:
+```java
+repository.findAllUsers()  // Publisher
+          .filter(user -> user.isActive())
+          .map(user -> transformUser(user))
+          .doOnError(error -> log.error("Error fetching users", error))
+          .subscribe(user -> sendToClient(user));  // Subscriber
+```
+
+![image](./resources/images/datastream3.png)
+
+## Summary
+In reactive programming:
+- Data is streamed between components as items arrive.
+- Publishers emit items one at a time, and subscribers process them immediately.
+- The subscription object allows for controlling data flow and handling errors.
+- Backpressure helps manage cases where data production exceeds consumption capacity.
+
+This reactive flow ensures efficient, non-blocking, and scalable data handling in Spring applications. Subsequent lessons will include practical examples with logging enabled to visualize the streaming process.
+
+## To-Do
+- **Next Lesson:** Explore the concept of Backpressure in more detail.
+- **Hands-on Example:** Build a REST API with Spring Framework to demonstrate reactive data streams in action.
+
+--- 
+
+# Backpressure and Data Streams in Reactive Programming
+
+This lesson focuses on understanding backpressure in reactive programming and how subscribers can manage data streams effectively.
+
+## Key Concepts
+
+### What is Backpressure?
+Backpressure is a mechanism that allows subscribers to control how much data they receive from publishers. This prevents subscribers from being overwhelmed by a fast publisher, ensuring smooth operation even under heavy data loads.
+
+### How Backpressure Works
+- The **request method** is used to specify the number of items the subscriber is ready to process.
+- When invoked, the request method tells the publisher how many items to send.
+- The publisher then sends only the number of items specified.
+
+### Default Behavior
+- By default, the request method requests all items at once, which can be problematic if the subscriber is slow.
+- Unprocessed items are held in memory, potentially slowing down the application if there is insufficient memory.
+
+### Importance of Backpressure
+- Critical in scenarios where publishers emit large numbers of items.
+- Helps avoid memory overload and performance degradation.
+
+## Examples
+
+### Example 1: Using the Request Method
+```java
+// Example of controlling data flow
+subscription.request(10); // Request 10 items from the publisher
+```
+This tells the publisher to send exactly 10 items to the subscriber.
+
+### Example 2: Default Behavior
+```java
+// Default request behavior
+subscription.request(Long.MAX_VALUE); // Requests all items at once
+```
+This default behavior can lead to issues if the subscriber cannot process all items quickly.
+
+### Example 3: Handling Slow Subscribers
+```java
+// Managing slow subscriber
+subscription.request(5); // Subscriber processes 5 items at a time
+```
+This approach prevents the subscriber from being overwhelmed.
+
+## Summary
+Backpressure is essential for managing data streams in reactive programming. It enables subscribers to control the flow of data, ensuring efficient processing without overwhelming the system. In the next lessons, more advanced topics related to backpressure will be explored.
+
+### Key Takeaways
+- Use the request method to manage data flow effectively.
+- Default behavior may lead to memory issues if subscribers are slow.
+- Managing backpressure ensures smoother and more efficient application performance.
 
