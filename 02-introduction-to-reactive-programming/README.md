@@ -47,6 +47,32 @@
     - [Example 3: Handling Slow Subscribers](#example-3-handling-slow-subscribers)
   - [Summary](#summary-2)
     - [Key Takeaways](#key-takeaways)
+- [Understanding Reactive and Non-Reactive Spring Applications](#understanding-reactive-and-non-reactive-spring-applications)
+  - [Overview](#overview-1)
+  - [Key Differences: Traditional Spring MVC vs. Reactive Spring Boot](#key-differences-traditional-spring-mvc-vs-reactive-spring-boot)
+  - [Core Concepts in Reactive Programming](#core-concepts-in-reactive-programming)
+  - [Examples](#examples-1)
+    - [Example 1: Blocking vs. Non-blocking Database Call](#example-1-blocking-vs-non-blocking-database-call)
+      - [Traditional Blocking Approach (Spring MVC with JDBC)](#traditional-blocking-approach-spring-mvc-with-jdbc)
+      - [Reactive Non-blocking Approach (Spring WebFlux with R2DBC)](#reactive-non-blocking-approach-spring-webflux-with-r2dbc)
+    - [Example 2: Reactive Web Client (Non-blocking HTTP Requests)](#example-2-reactive-web-client-non-blocking-http-requests)
+      - [Traditional Blocking RestTemplate (Spring MVC)](#traditional-blocking-resttemplate-spring-mvc)
+      - [Reactive WebClient (Spring WebFlux)](#reactive-webclient-spring-webflux)
+  - [Conclusion](#conclusion-1)
+- [Spring WebFlux Overview](#spring-webflux-overview)
+  - [Introduction](#introduction-1)
+  - [Key Differences Between Spring MVC and Spring WebFlux](#key-differences-between-spring-mvc-and-spring-webflux)
+  - [Why Use Spring WebFlux?](#why-use-spring-webflux)
+  - [How to Use Spring WebFlux](#how-to-use-spring-webflux)
+    - [Adding WebFlux Dependency (Maven)](#adding-webflux-dependency-maven)
+    - [Defining a Reactive REST Controller](#defining-a-reactive-rest-controller)
+      - [Example: Traditional Spring MVC Controller (Blocking)](#example-traditional-spring-mvc-controller-blocking)
+      - [Example: WebFlux Controller (Non-Blocking)](#example-webflux-controller-non-blocking)
+    - [Functional Endpoints in WebFlux](#functional-endpoints-in-webflux)
+      - [Example: Functional Endpoint](#example-functional-endpoint)
+    - [Reactive Database Access](#reactive-database-access)
+      - [Example: Reactive Repository with R2DBC](#example-reactive-repository-with-r2dbc)
+  - [Summary](#summary-3)
 
 
 ## Introduction
@@ -281,4 +307,186 @@ Backpressure is essential for managing data streams in reactive programming. It 
 - Use the request method to manage data flow effectively.
 - Default behavior may lead to memory issues if subscribers are slow.
 - Managing backpressure ensures smoother and more efficient application performance.
+
+---
+# Understanding Reactive and Non-Reactive Spring Applications
+
+## Overview
+In traditional Spring MVC applications, communication between components is mostly **blocking**. The execution follows an **imperative programming** model, which includes:
+- Sequential execution of code
+- Blocking I/O operations
+- Synchronous step-by-step logic
+
+![image](./resources/images/traditional-bloking-spring-mvc-rest-application.png)
+
+However, **Reactive Spring Boot applications** use a completely different approach where communication is **non-blocking** from the start. This leads to **higher scalability** and **better resource utilization**.
+
+## Key Differences: Traditional Spring MVC vs. Reactive Spring Boot
+
+| Feature                 | Traditional Spring MVC         | Reactive Spring Boot |
+|-------------------------|--------------------------------|-----------------------|
+| **Execution Model**     | Imperative, Blocking          | Asynchronous, Non-blocking |
+| **Embedded Server**     | Apache Tomcat (Blocking)      | Netty (Non-blocking) |
+| **Database Drivers**    | JDBC, JPA (Blocking)          | R2DBC, Reactive Mongo, Cassandra, etc. (Non-blocking) |
+| **Programming Style**   | Step-by-step synchronous logic | Event-driven, Reactive Streams |
+| **Web Framework**       | Spring MVC (Servlet-based)    | Spring WebFlux |
+| **Security Framework**  | Spring Security               | Spring Security Reactive |
+| **Supported Web Servers** | Tomcat, Jetty, Undertow (Blocking) | Netty (default), Jetty (Reactive), Undertow (Reactive) |
+
+![image](./resources/images/traditional-vs-reactive.png)
+
+
+## Core Concepts in Reactive Programming
+1. **Asynchronous Data Streams**: Data is processed as it arrives instead of waiting for all data to be available.
+2. **Non-blocking I/O Operations**: Components do not wait for responses and can continue processing other tasks.
+3. **Event-driven Architecture**: Actions are triggered based on events rather than sequential steps.
+
+![image](./resources/images/reactive-application-overview.png)
+
+## Examples
+### Example 1: Blocking vs. Non-blocking Database Call
+#### Traditional Blocking Approach (Spring MVC with JDBC)
+```java
+@RestController
+public class UserController {
+    @Autowired
+    private UserRepository userRepository;
+
+    @GetMapping("/users")
+    public List<User> getUsers() {
+        return userRepository.findAll(); // Blocking call
+    }
+}
+```
+
+#### Reactive Non-blocking Approach (Spring WebFlux with R2DBC)
+```java
+@RestController
+public class UserController {
+    @Autowired
+    private ReactiveUserRepository userRepository;
+
+    @GetMapping("/users")
+    public Flux<User> getUsers() {
+        return userRepository.findAll(); // Non-blocking stream of users
+    }
+}
+```
+
+### Example 2: Reactive Web Client (Non-blocking HTTP Requests)
+#### Traditional Blocking RestTemplate (Spring MVC)
+```java
+RestTemplate restTemplate = new RestTemplate();
+ResponseEntity<String> response = restTemplate.getForEntity("https://api.example.com/data", String.class);
+String body = response.getBody(); // Blocking call
+```
+
+#### Reactive WebClient (Spring WebFlux)
+```java
+WebClient webClient = WebClient.create("https://api.example.com");
+Mono<String> response = webClient.get().uri("/data").retrieve().bodyToMono(String.class);
+response.subscribe(System.out::println); // Non-blocking call
+```
+
+## Conclusion
+Reactive Spring Boot applications provide **better performance and scalability** by eliminating blocking operations. However, they require a different mindset and coding style based on **Reactive Streams**. Choosing between traditional Spring MVC and Reactive Spring depends on your application’s requirements. If high throughput and responsiveness are needed, **Spring WebFlux** is the best choice.
+
+---
+
+# Spring WebFlux Overview
+
+## Introduction
+Spring WebFlux is a module within the Spring Framework that enables the development of reactive web applications and APIs. Unlike traditional Spring MVC applications, WebFlux is designed for non-blocking, asynchronous execution, making it ideal for handling a large number of concurrent requests with minimal resources.
+
+## Key Differences Between Spring MVC and Spring WebFlux
+
+| Feature            | Spring MVC (Blocking) | Spring WebFlux (Non-Blocking) |
+|-------------------|----------------------|-------------------------------|
+| Execution Model  | Imperative (Blocking) | Reactive (Non-Blocking) |
+| Default Web Server | Apache Tomcat | Netty (Non-Blocking) |
+| Database Access  | JDBC, JPA (Blocking) | R2DBC, MongoDB, Cassandra (Reactive) |
+| Programming Model | Annotation-based MVC | Annotation-based & Functional Endpoints |
+| Security         | Spring Security | Spring Security Reactive |
+| Concurrency Handling | Thread-per-request | Event-driven, Handles More Requests with Fewer Threads |
+
+## Why Use Spring WebFlux?
+- **High Performance:** Handles many concurrent requests efficiently.
+- **Better Resource Utilization:** Uses fewer threads and non-blocking I/O operations.
+- **Streaming Data Processing:** Handles data streams asynchronously.
+- **Supports Both Imperative and Reactive Styles:** Developers can use annotations (like in Spring MVC) or functional endpoints.
+
+## How to Use Spring WebFlux
+### Adding WebFlux Dependency (Maven)
+To enable WebFlux in a Spring Boot application, replace `spring-boot-starter-web` with `spring-boot-starter-webflux` in `pom.xml`:
+
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-webflux</artifactId>
+</dependency>
+```
+
+### Defining a Reactive REST Controller
+Spring WebFlux supports annotation-based controllers similar to Spring MVC but returns `Flux<T>` or `Mono<T>` instead of `List<T>`.
+
+#### Example: Traditional Spring MVC Controller (Blocking)
+```java
+@RestController
+@RequestMapping("/users")
+public class UserController {
+    @GetMapping
+    public List<User> getAllUsers() {
+        return userService.getUsers();
+    }
+}
+```
+
+#### Example: WebFlux Controller (Non-Blocking)
+```java
+@RestController
+@RequestMapping("/users")
+public class UserController {
+    @GetMapping
+    public Flux<User> getAllUsers() {
+        return userService.getUsers();
+    }
+}
+```
+Here, `Flux<User>` represents a reactive stream of multiple user objects.
+
+### Functional Endpoints in WebFlux
+WebFlux allows defining routes functionally instead of using annotation-based controllers.
+
+#### Example: Functional Endpoint
+```java
+@Configuration
+public class UserRouter {
+    @Bean
+    public RouterFunction<ServerResponse> route(UserHandler userHandler) {
+        return RouterFunctions.route(RequestPredicates.GET("/users"), userHandler::getAllUsers);
+    }
+}
+```
+
+### Reactive Database Access
+Spring WebFlux integrates with non-blocking, reactive databases such as MongoDB, Cassandra, and R2DBC for relational databases.
+
+#### Example: Reactive Repository with R2DBC
+```java
+@Repository
+public interface UserRepository extends ReactiveCrudRepository<User, Long> {}
+```
+
+## Summary
+Spring WebFlux provides a powerful way to build scalable, non-blocking applications. It:
+- Uses **Netty** instead of Tomcat (by default).
+- Handles **high concurrency** without increasing system resource consumption.
+- Supports both **annotation-based controllers** and **functional endpoints**.
+- Works well with **reactive database drivers** and **event-driven architecture**.
+- Uses `Flux<T>` and `Mono<T>` instead of `List<T>` for data handling.
+
+For applications requiring high scalability and responsiveness, Spring WebFlux is an excellent choice over traditional blocking Spring MVC.
+
+---
+_This document provides a concise yet detailed overview of Spring WebFlux, its advantages, and how to implement it in your applications._
 
