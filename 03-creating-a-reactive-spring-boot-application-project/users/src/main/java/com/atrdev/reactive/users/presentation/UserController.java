@@ -1,5 +1,6 @@
 package com.atrdev.reactive.users.presentation;
 
+import com.atrdev.reactive.users.service.UserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -14,6 +15,12 @@ import java.util.UUID;
 @RequestMapping("/users") // Base URL mapping for all endpoints in this controller.
 public class UserController {
 
+    private final UserService userService;
+
+    public UserController(UserService userService) {
+        this.userService = userService;
+    }
+
     /**
      * Handles the creation of a new user.
      *
@@ -23,18 +30,26 @@ public class UserController {
     @PostMapping
     //@ResponseStatus(HttpStatus.CREATED) // Uncomment to set the default response status to 201 CREATED.
     public Mono<ResponseEntity<UserRest>> createUser(@RequestBody @Validated Mono<CreateUserRequest> createUserRequest) {
-        // Maps the incoming request to a new UserRest object with a generated UUID.
-        return createUserRequest.map(request ->
-                        new UserRest(UUID.randomUUID(),
-                                request.getFirstName(),
-                                request.getLastName(),
-                                request.getEmail()))
-                // Wraps the created user in a ResponseEntity with HTTP status 201 (CREATED)
-                // and sets the Location header to the URL of the newly created user.
+
+        return userService.createUser(createUserRequest)
                 .map(userRest -> ResponseEntity
                         .status(HttpStatus.CREATED)
                         .location(URI.create("/users/" + userRest.getId()))
                         .body(userRest));
+
+
+        // Maps the incoming request to a new UserRest object with a generated UUID.
+        /*return createUserRequest.map(request ->
+                        new UserRest(UUID.randomUUID(),
+                                request.getFirstName(),
+                                request.getLastName(),
+                                request.getEmail()))*/
+        // Wraps the created user in a ResponseEntity with HTTP status 201 (CREATED)
+        // and sets the Location header to the URL of the newly created user.
+                /*.map(userRest -> ResponseEntity
+                        .status(HttpStatus.CREATED)
+                        .location(URI.create("/users/" + userRest.getId()))
+                        .body(userRest));*/
     }
 
     /**
@@ -44,9 +59,14 @@ public class UserController {
      * @return A Mono containing the UserRest object representing the requested user.
      */
     @GetMapping("/{userId}")
-    public Mono<UserRest> getUser(@PathVariable("userId") UUID userId) {
+    public Mono<ResponseEntity<UserRest>> getUser(@PathVariable("userId") UUID userId) {
+        return userService.getUserById(userId)
+                .map(userRest -> ResponseEntity
+                        .status(HttpStatus.OK)
+                        .body(userRest))
+                .switchIfEmpty(Mono.just(ResponseEntity.status(HttpStatus.NOT_FOUND).build()));
         // Returns a mock user with the provided userId and placeholder data.
-        return Mono.just(new UserRest(userId, "First Name", "Last Name", "Email"));
+        //return Mono.just(new UserRest(userId, "First Name", "Last Name", "Email"));
     }
 
     /**
