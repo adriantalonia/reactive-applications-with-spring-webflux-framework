@@ -5,7 +5,14 @@ import com.atrdev.reactive.users.data.UserRepository;
 import com.atrdev.reactive.users.presentation.CreateUserRequest;
 import com.atrdev.reactive.users.presentation.UserRest;
 import org.springframework.beans.BeanUtils;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.DuplicateKeyException;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.UUID;
@@ -39,11 +46,51 @@ public class UserServiceImpl implements UserService {
                 // Step 3: Transform the saved UserEntity into a UserRest object.
                 // mapNotNull ensures that null values are filtered out, preventing NullPointerException.
                 .mapNotNull(this::convertToRest); // Synchronously map the saved entity to a UserRest, skipping null values.
+                // Step 4: Handle specific exceptions and map them to appropriate HTTP status codes.
+                // This ensures that errors are handled gracefully and meaningful responses are returned to the client.
+                /*.onErrorMap(throwable -> {
+                    // Check if the exception is a DuplicateKeyException (e.g., duplicate email or username).
+                    if (throwable instanceof DuplicateKeyException) {
+                        // Return a 409 CONFLICT status with the exception message.
+                        return new ResponseStatusException(HttpStatus.CONFLICT, throwable.getMessage());
+                    }
+                    // Check if the exception is a DataIntegrityViolationException (e.g., invalid data constraints).
+                    else if (throwable instanceof DataIntegrityViolationException) {
+                        // Return a 400 BAD REQUEST status with the exception message.
+                        return new ResponseStatusException(HttpStatus.BAD_REQUEST, throwable.getMessage());
+                    }
+                    // Handle all other unexpected exceptions.
+                    else {
+                        // Return a 500 INTERNAL SERVER ERROR status with the exception message.
+                        return new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, throwable.getMessage());
+                    }
+                });*/
     }
 
     @Override
     public Mono<UserRest> getUserById(UUID userId) {
         return userRepository.findById(userId).mapNotNull(this::convertToRest);
+    }
+
+    /**
+     * Retrieves a paginated list of users.
+     *
+     * @param page  The page number (starting from 0).
+     * @param limit The number of users to return per page.
+     * @return A Flux containing a list of UserRest objects.
+     */
+    @Override
+    public Flux<UserRest> findAll(int page, int limit) {
+        // Step 1: Create a Pageable object for pagination.
+        // PageRequest.of(page, limit) creates a pagination request with the specified page number and page size.
+        Pageable pageable = PageRequest.of(page, limit);
+
+        // Step 2: Fetch users from the repository using pagination.
+        // userRepository.findAllBy(pageable) retrieves a paginated list of UserEntity objects from the database.
+        return userRepository.findAllBy(pageable)
+                // Step 3: Transform each UserEntity into a UserRest object.
+                // this::convertToRest is a method reference to convert UserEntity to UserRest.
+                .map(this::convertToRest);
     }
 
     /**

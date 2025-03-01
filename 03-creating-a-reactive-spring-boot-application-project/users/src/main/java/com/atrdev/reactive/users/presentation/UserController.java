@@ -3,6 +3,7 @@ package com.atrdev.reactive.users.presentation;
 import com.atrdev.reactive.users.service.UserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.codec.ServerCodecConfigurer;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
@@ -16,9 +17,11 @@ import java.util.UUID;
 public class UserController {
 
     private final UserService userService;
+    private final ServerCodecConfigurer serverCodecConfigurer;
 
-    public UserController(UserService userService) {
+    public UserController(UserService userService, ServerCodecConfigurer serverCodecConfigurer) {
         this.userService = userService;
+        this.serverCodecConfigurer = serverCodecConfigurer;
     }
 
     /**
@@ -79,10 +82,13 @@ public class UserController {
     @GetMapping
     public Flux<UserRest> getUsers(@RequestParam(value = "offset", defaultValue = "0") int offset,
                                    @RequestParam(value = "limit", defaultValue = "50") int limit) {
+
+        return userService.findAll(offset, limit);
+
         // Returns a Flux of mock users with placeholder data.
-        return Flux.just(
+        /*return Flux.just(
                 new UserRest(UUID.randomUUID(), "First Name", "Last Name", "Email"),
                 new UserRest(UUID.randomUUID(), "First Name", "Last Name", "Email"),
-                new UserRest(UUID.randomUUID(), "First Name", "Last Name", "Email"));
+                new UserRest(UUID.randomUUID(), "First Name", "Last Name", "Email"));*/
     }
 }
