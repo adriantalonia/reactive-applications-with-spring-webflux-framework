@@ -10,10 +10,12 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.util.UUID;
 
@@ -22,10 +24,13 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository; // Dependency for interacting with the user data repository.
 
+    private final PasswordEncoder passwordEncoder;
+
     // Constructor-based dependency injection for UserRepository.
     // This ensures that the UserRepository is provided when this service is instantiated.
-    public UserServiceImpl(UserRepository userRepository) {
+    public UserServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     /**
@@ -39,7 +44,7 @@ public class UserServiceImpl implements UserService {
         // Step 1: Transform the CreateUserRequest into a UserEntity object.
         // mapNotNull ensures that null values are filtered out, preventing NullPointerException.
         return createUserRequestMono
-                .mapNotNull(this::convertToEntity) // Synchronously map the request to a UserEntity, skipping null values.
+                .flatMap(this::convertToEntity) // Synchronously map the request to a UserEntity, skipping null values.
                 // Step 2: Save the UserEntity to the database asynchronously using flatMap.
                 // userRepository::save is a method reference to save the entity asynchronously.
                 .flatMap(userRepository::save) // Asynchronously save the entity and return a Mono<UserEntity>.
@@ -95,16 +100,32 @@ public class UserServiceImpl implements UserService {
 
     /**
      * Converts a CreateUserRequest object into a UserEntity object.
+     * This method performs the conversion asynchronously using reactive programming.
      *
      * @param createUserRequest The request object containing user data.
-     * @return A UserEntity object populated with data from the request.
+     * @return A Mono containing the UserEntity object populated with data from the request.
      */
-    private UserEntity convertToEntity(CreateUserRequest createUserRequest) {
-        UserEntity userEntity = new UserEntity(); // Create a new UserEntity instance.
-        // Copy properties from the CreateUserRequest to the UserEntity using Spring's BeanUtils.
-        // This avoids manual property mapping and reduces boilerplate code.
-        BeanUtils.copyProperties(createUserRequest, userEntity);
-        return userEntity; // Return the populated UserEntity.
+    private Mono<UserEntity> convertToEntity(CreateUserRequest createUserRequest) {
+        // Step 1: Use Mono.fromCallable to perform the conversion asynchronously.
+        // This ensures that the operation is executed on a separate thread pool, avoiding blocking the main thread.
+        return Mono.fromCallable(() -> {
+                    // Step 2: Create a new UserEntity instance.
+                    UserEntity userEntity = new UserEntity();
+
+                    // Step 3: Copy properties from the CreateUserRequest to the UserEntity using Spring's BeanUtils.
+                    // This avoids manual property mapping and reduces boilerplate code.
+                    BeanUtils.copyProperties(createUserRequest, userEntity);
+
+                    // Step 4: Encode the user's password before saving it to the database.
+                    // This ensures that the password is securely hashed using the configured password encoder.
+                    userEntity.setPassword(passwordEncoder.encode(createUserRequest.getPassword()));
+
+                    // Step 5: Return the populated UserEntity.
+                    return userEntity;
+                })
+                // Step 6: Execute the conversion on a bounded elastic scheduler.
+                // This ensures that the operation is performed on a dedicated thread pool, improving performance and avoiding blocking.
+                .subscribeOn(Schedulers.boundedElastic());
     }
 
     /**
