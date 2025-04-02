@@ -1,4 +1,4 @@
-package com.atrdev.reactive.users.presentation;
+package com.atrdev.reactive.users.presentation.model;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;

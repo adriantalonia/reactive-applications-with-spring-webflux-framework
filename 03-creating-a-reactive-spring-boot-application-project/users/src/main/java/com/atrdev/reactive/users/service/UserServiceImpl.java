@@ -2,21 +2,20 @@ package com.atrdev.reactive.users.service;
 
 import com.atrdev.reactive.users.data.UserEntity;
 import com.atrdev.reactive.users.data.UserRepository;
-import com.atrdev.reactive.users.presentation.CreateUserRequest;
-import com.atrdev.reactive.users.presentation.UserRest;
+import com.atrdev.reactive.users.presentation.model.CreateUserRequest;
+import com.atrdev.reactive.users.presentation.model.UserRest;
 import org.springframework.beans.BeanUtils;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpStatus;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
+import java.util.Collections;
 import java.util.UUID;
 
 @Service // Marks this class as a Spring service component, making it a candidate for dependency injection.
@@ -51,8 +50,8 @@ public class UserServiceImpl implements UserService {
                 // Step 3: Transform the saved UserEntity into a UserRest object.
                 // mapNotNull ensures that null values are filtered out, preventing NullPointerException.
                 .mapNotNull(this::convertToRest); // Synchronously map the saved entity to a UserRest, skipping null values.
-                // Step 4: Handle specific exceptions and map them to appropriate HTTP status codes.
-                // This ensures that errors are handled gracefully and meaningful responses are returned to the client.
+        // Step 4: Handle specific exceptions and map them to appropriate HTTP status codes.
+        // This ensures that errors are handled gracefully and meaningful responses are returned to the client.
                 /*.onErrorMap(throwable -> {
                     // Check if the exception is a DuplicateKeyException (e.g., duplicate email or username).
                     if (throwable instanceof DuplicateKeyException) {
@@ -140,5 +139,15 @@ public class UserServiceImpl implements UserService {
         // This avoids manual property mapping and reduces boilerplate code.
         BeanUtils.copyProperties(userEntity, userRest);
         return userRest; // Return the populated UserRest.
+    }
+
+    @Override
+    public Mono<UserDetails> findByUsername(String username) {
+        return userRepository.findByEmail(username)
+                .map(userEntity -> User
+                        .withUsername(userEntity.getEmail())
+                        .password(userEntity.getPassword())
+                        .authorities(Collections.emptyList())
+                        .build());
     }
 }

@@ -1,5 +1,7 @@
 package com.atrdev.reactive.users.presentation;
 
+import com.atrdev.reactive.users.presentation.model.CreateUserRequest;
+import com.atrdev.reactive.users.presentation.model.UserRest;
 import com.atrdev.reactive.users.service.UserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

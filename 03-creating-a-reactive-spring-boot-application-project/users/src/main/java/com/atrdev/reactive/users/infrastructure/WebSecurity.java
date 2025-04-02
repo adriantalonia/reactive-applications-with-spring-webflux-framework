@@ -15,8 +15,9 @@ public class WebSecurity {
 
     @Bean
     SecurityWebFilterChain springSecurityFilterChain(ServerHttpSecurity http) {
-        return http.authorizeExchange(exchanges -> exchanges.pathMatchers(HttpMethod.POST, "/users")
-                .permitAll()
+        return http.authorizeExchange(exchanges -> exchanges
+                        .pathMatchers(HttpMethod.POST, "/users").permitAll()
+                        .pathMatchers(HttpMethod.POST, "/auth/login").permitAll()
                 .anyExchange().authenticated())
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
                 .build();
