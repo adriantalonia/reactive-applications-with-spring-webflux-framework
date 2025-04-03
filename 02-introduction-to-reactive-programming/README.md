@@ -73,6 +73,19 @@
     - [Reactive Database Access](#reactive-database-access)
       - [Example: Reactive Repository with R2DBC](#example-reactive-repository-with-r2dbc)
   - [Summary](#summary-3)
+- [onError Operators](#onerror-operators)
+    - [1. **onErrorReturn()**](#1-onerrorreturn)
+      - [Example:](#example-1)
+    - [2. **onErrorResume()**](#2-onerrorresume)
+      - [Example:](#example-2)
+    - [3. **onErrorComplete()**](#3-onerrorcomplete)
+      - [Example:](#example-3)
+    - [4. **onErrorContinue()**](#4-onerrorcontinue)
+      - [Example:](#example-4)
+    - [5. **onErrorMap()**](#5-onerrormap)
+      - [Example:](#example-5)
+    - [6. **onErrorStop()**](#6-onerrorstop)
+      - [Example:](#example-6)
 
 
 ## Introduction
@@ -489,4 +502,123 @@ For applications requiring high scalability and responsiveness, Spring WebFlux i
 
 ---
 _This document provides a concise yet detailed overview of Spring WebFlux, its advantages, and how to implement it in your applications._
+
+# onError Operators
+
+The `onError` operators are used in reactive programming to handle errors in a stream. These operators provide different mechanisms to deal with errors and ensure smooth data flow. Below is a summary of each operator along with examples:
+
+### 1. **onErrorReturn()**
+Replaces an error with a single, predefined value.
+
+#### Example:
+```java
+Flux<Integer> flux = Flux.just(1, 2, 3)
+    .concatWith(Flux.error(new RuntimeException("Error occurred")))
+    .onErrorReturn(-1);
+
+flux.subscribe(System.out::println);
+```
+**Output:**
+```
+1
+2
+3
+-1
+```
+
+### 2. **onErrorResume()**
+Replaces an error with an alternative publisher.
+
+#### Example:
+```java
+Flux<Integer> flux = Flux.just(1, 2, 3)
+    .concatWith(Flux.error(new RuntimeException("Error occurred")))
+    .onErrorResume(e -> Flux.just(100, 200, 300));
+
+flux.subscribe(System.out::println);
+```
+**Output:**
+```
+1
+2
+3
+100
+200
+300
+```
+
+### 3. **onErrorComplete()**
+Transforms an error into a completion signal, effectively terminating the stream without propagating the error.
+
+#### Example:
+```java
+Flux<Integer> flux = Flux.just(1, 2, 3)
+    .concatWith(Flux.error(new RuntimeException("Error occurred")))
+    .onErrorComplete();
+
+flux.subscribe(System.out::println);
+```
+**Output:**
+```
+1
+2
+3
+```
+
+### 4. **onErrorContinue()**
+Recovers from errors by dropping the erroneous element and continuing the sequence.
+
+#### Example:
+```java
+Flux<Integer> flux = Flux.just(1, 2, 3, 0, 4)
+    .map(i -> 10 / i)
+    .onErrorContinue((error, element) -> System.out.println("Skipping error for: " + element));
+
+flux.subscribe(System.out::println);
+```
+**Output:**
+```
+10
+5
+3
+Skipping error for: 0
+2
+```
+
+### 5. **onErrorMap()**
+Transforms the error into a different error.
+
+#### Example:
+```java
+Flux<Integer> flux = Flux.just(1, 2, 3)
+    .concatWith(Flux.error(new RuntimeException("Original error")))
+    .onErrorMap(error -> new CustomException("Mapped error", error));
+
+flux.subscribe(System.out::println, error -> System.out.println(error.getMessage()));
+```
+
+### 6. **onErrorStop()**
+Tells the stream to stop processing immediately upon encountering an error.
+
+#### Example:
+```java
+Flux<Integer> flux = Flux.just(1, 2, 3)
+    .concatWith(Flux.error(new RuntimeException("Error occurred")))
+    .onErrorStop();
+
+flux.subscribe(System.out::println);
+```
+**Output:**
+```
+1
+2
+3
+```
+(The stream stops, and no fallback values are emitted.)
+
+These operators are commonly used in reactive libraries such as Project Reactor and RxJava to handle errors effectively.
+
+
+
+
 

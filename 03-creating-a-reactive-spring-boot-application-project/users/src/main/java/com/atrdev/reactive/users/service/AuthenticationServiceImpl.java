@@ -25,7 +25,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     public Mono<Map<String, String>> authenticate(String username, String password) {
         return reactiveAuthenticationManager
                 .authenticate(new UsernamePasswordAuthenticationToken(username, password))
-                .then(getUserDetails(username));
+                .then(getUserDetails(username))
+                .map(this::createAuthResponse);
     }
 
     private Mono<UserEntity> getUserDetails(String username) {
