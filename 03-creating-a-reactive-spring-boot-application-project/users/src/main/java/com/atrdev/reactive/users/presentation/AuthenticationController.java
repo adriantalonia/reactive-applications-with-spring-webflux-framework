@@ -32,7 +32,7 @@ public class AuthenticationController {
                                         authenticationRequest.getPassword()))
                 .map(authenticationResultMap -> ResponseEntity.ok()
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + authenticationResultMap.get("token"))
-                        .header("UserId", authenticationResultMap.get("userId"))
+                        .header("userId", authenticationResultMap.get("userId"))
                         .build());
                 //.onErrorReturn(BadCredentialsException.class, ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid credentials"))
                 //.onErrorReturn(Exception.class, ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build());
