@@ -6,6 +6,7 @@ import com.atrdev.reactive.users.service.UserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.codec.ServerCodecConfigurer;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
@@ -63,7 +64,10 @@ public class UserController {
      * @param userId The UUID of the user to retrieve.
      * @return A Mono containing the UserRest object representing the requested user.
      */
+
     @GetMapping("/{userId}")
+    //@PreAuthorize("authentication.principal.equals(#userId.toString() or hasRole('ROLE_ADMIN'))")
+    @PreAuthorize("authentication.principal.equals(#userId.toString())")
     public Mono<ResponseEntity<UserRest>> getUser(@PathVariable("userId") UUID userId) {
         return userService.getUserById(userId)
                 .map(userRest -> ResponseEntity
