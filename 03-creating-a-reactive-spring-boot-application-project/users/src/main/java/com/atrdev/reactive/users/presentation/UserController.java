@@ -6,6 +6,7 @@ import com.atrdev.reactive.users.service.UserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.codec.ServerCodecConfigurer;
+import org.springframework.security.access.prepost.PostAuthorize;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -67,7 +68,8 @@ public class UserController {
 
     @GetMapping("/{userId}")
     //@PreAuthorize("authentication.principal.equals(#userId.toString() or hasRole('ROLE_ADMIN'))")
-    @PreAuthorize("authentication.principal.equals(#userId.toString())")
+    //@PreAuthorize("authentication.principal.equals(#userId.toString())")
+    @PostAuthorize("returnObject.body != null and (returnObject.body.id.toString().equals(authentication.principal))")
     public Mono<ResponseEntity<UserRest>> getUser(@PathVariable("userId") UUID userId) {
         return userService.getUserById(userId)
                 .map(userRest -> ResponseEntity
