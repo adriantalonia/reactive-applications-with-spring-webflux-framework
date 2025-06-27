@@ -13,6 +13,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.Sinks;
 import reactor.core.scheduler.Schedulers;
 
 import java.util.Collections;
@@ -22,14 +23,15 @@ import java.util.UUID;
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository; // Dependency for interacting with the user data repository.
-
     private final PasswordEncoder passwordEncoder;
+    private final Sinks.Many<UserRest> userSink;
 
     // Constructor-based dependency injection for UserRepository.
     // This ensures that the UserRepository is provided when this service is instantiated.
-    public UserServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public UserServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder, Sinks.Many<UserRest> userSink) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.userSink = userSink;
     }
 
     /**
@@ -49,7 +51,9 @@ public class UserServiceImpl implements UserService {
                 .flatMap(userRepository::save) // Asynchronously save the entity and return a Mono<UserEntity>.
                 // Step 3: Transform the saved UserEntity into a UserRest object.
                 // mapNotNull ensures that null values are filtered out, preventing NullPointerException.
-                .mapNotNull(this::convertToRest); // Synchronously map the saved entity to a UserRest, skipping null values.
+                .mapNotNull(this::convertToRest) // Synchronously map the saved entity to a UserRest, skipping null values.
+                .doOnSuccess(savedUser -> userSink.tryEmitNext(savedUser));
+
         // Step 4: Handle specific exceptions and map them to appropriate HTTP status codes.
         // This ensures that errors are handled gracefully and meaningful responses are returned to the client.
                 /*.onErrorMap(throwable -> {
@@ -95,6 +99,13 @@ public class UserServiceImpl implements UserService {
                 // Step 3: Transform each UserEntity into a UserRest object.
                 // this::convertToRest is a method reference to convert UserEntity to UserRest.
                 .map(this::convertToRest);
+    }
+
+    @Override
+    public Flux<UserRest> streamUsers() {
+        return userSink.asFlux()
+                .publish()
+                .autoConnect(1);
     }
 
     /**
