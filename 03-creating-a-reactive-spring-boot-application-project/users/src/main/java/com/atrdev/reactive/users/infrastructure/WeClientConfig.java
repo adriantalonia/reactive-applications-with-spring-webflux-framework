@@ -22,8 +22,8 @@ public class WeClientConfig {
                 .baseUrl(baseUrl)
                 // .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .defaultHeaders(headers -> {
-                    headers.setAccept(List.of(MediaType.APPLICATION_JSON));
                     headers.setContentType(MediaType.APPLICATION_JSON);
+                    headers.setAccept(List.of(MediaType.APPLICATION_JSON));
                 })
                 .build();
     }

@@ -63,9 +63,10 @@ public class UserController {
     //@PreAuthorize("authentication.principal.equals(#userId.toString() or hasRole('ROLE_ADMIN'))")
     //@PreAuthorize("authentication.principal.equals(#userId.toString())")
     @PostAuthorize("returnObject.body != null and (returnObject.body.id.toString().equals(authentication.principal))")
-    public Mono<ResponseEntity<UserRest>> getUser(@PathVariable("userId") UUID userId) {
+    public Mono<ResponseEntity<UserRest>> getUser(@PathVariable("userId") UUID userId,
+                                                  @RequestParam(name = "include", required = false) String include) {
         // Delegates user retrieval to the service layer
-        return userService.getUserById(userId)
+        return userService.getUserById(userId, include)
                 .map(userRest -> ResponseEntity
                         .status(HttpStatus.OK) // Sets HTTP status to 200 (OK)
                         .body(userRest))

@@ -2,6 +2,7 @@ package com.atrdev.reactive.users.service;
 
 import com.atrdev.reactive.users.data.UserEntity;
 import com.atrdev.reactive.users.data.UserRepository;
+import com.atrdev.reactive.users.presentation.model.AlbumRest;
 import com.atrdev.reactive.users.presentation.model.CreateUserRequest;
 import com.atrdev.reactive.users.presentation.model.UserRest;
 import org.springframework.beans.BeanUtils;
@@ -11,13 +12,16 @@ import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 import reactor.core.scheduler.Schedulers;
 
+import java.net.URI;
 import java.util.Collections;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service // Marks this class as a Spring service component, making it a candidate for dependency injection.
 public class UserServiceImpl implements UserService {
@@ -25,13 +29,18 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository; // Dependency for interacting with the user data repository.
     private final PasswordEncoder passwordEncoder;
     private final Sinks.Many<UserRest> userSink;
+    private final WebClient webClient;
 
     // Constructor-based dependency injection for UserRepository.
     // This ensures that the UserRepository is provided when this service is instantiated.
-    public UserServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder, Sinks.Many<UserRest> userSink) {
+    public UserServiceImpl(UserRepository userRepository,
+                           PasswordEncoder passwordEncoder,
+                           Sinks.Many<UserRest> userSink,
+                           WebClient webClient) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.userSink = userSink;
+        this.webClient = webClient;
     }
 
     /**
@@ -76,8 +85,34 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public Mono<UserRest> getUserById(UUID userId) {
-        return userRepository.findById(userId).mapNotNull(this::convertToRest);
+    public Mono<UserRest> getUserById(UUID userId, String include) {
+        return userRepository
+                .findById(userId)
+                .mapNotNull(this::convertToRest)
+                .flatMap(user -> {
+                    if (include != null && include.contains("albums")) {
+                        // fetch user's phone albums and add them to a user object
+                        return includeUserAlbums(user);
+                    }
+                    return Mono.just(user);
+                });
+    }
+
+    private Mono<UserRest> includeUserAlbums(UserRest user) {
+        return webClient
+                .get()
+                .uri(uriBuilder -> uriBuilder
+                        .port(8084)
+                        .path("/albums")
+                        .queryParam("userId", user.getId())
+                        .build())
+                .retrieve()
+                .bodyToFlux(AlbumRest.class)
+                .collectList()
+                .map(albums -> {
+                    user.setAlbums(albums);
+                    return user;
+                });
     }
 
     /**
