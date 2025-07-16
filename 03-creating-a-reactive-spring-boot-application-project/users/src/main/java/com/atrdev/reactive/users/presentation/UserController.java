@@ -64,9 +64,10 @@ public class UserController {
     //@PreAuthorize("authentication.principal.equals(#userId.toString())")
     @PostAuthorize("returnObject.body != null and (returnObject.body.id.toString().equals(authentication.principal))")
     public Mono<ResponseEntity<UserRest>> getUser(@PathVariable("userId") UUID userId,
-                                                  @RequestParam(name = "include", required = false) String include) {
+                                                  @RequestParam(name = "include", required = false) String include,
+                                                  @RequestHeader(name = "Authorization") String jwt) {
         // Delegates user retrieval to the service layer
-        return userService.getUserById(userId, include)
+        return userService.getUserById(userId, include, jwt)
                 .map(userRest -> ResponseEntity
                         .status(HttpStatus.OK) // Sets HTTP status to 200 (OK)
                         .body(userRest))
