@@ -5,9 +5,12 @@ import com.atrdev.reactive.users.data.UserRepository;
 import com.atrdev.reactive.users.presentation.model.AlbumRest;
 import com.atrdev.reactive.users.presentation.model.CreateUserRequest;
 import com.atrdev.reactive.users.presentation.model.UserRest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -30,6 +33,7 @@ public class UserServiceImpl implements UserService {
     private final PasswordEncoder passwordEncoder;
     private final Sinks.Many<UserRest> userSink;
     private final WebClient webClient;
+    private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
     // Constructor-based dependency injection for UserRepository.
     // This ensures that the UserRepository is provided when this service is instantiated.
@@ -108,11 +112,21 @@ public class UserServiceImpl implements UserService {
                         .build())
                 .header("Authorization", "Bearer " + jwt)
                 .retrieve()
+                .onStatus(HttpStatusCode::is4xxClientError, response -> {
+                    return Mono.error(new RuntimeException("Albums not found for users"));
+                })
+                .onStatus(HttpStatusCode::is5xxServerError, response -> {
+                    return Mono.error(new RuntimeException("Server error while fetching albums"));
+                })
                 .bodyToFlux(AlbumRest.class)
                 .collectList()
                 .map(albums -> {
                     user.setAlbums(albums);
                     return user;
+                })
+                .onErrorResume( e -> {
+                    logger.error("Error fetching albums: ", e);
+                    return Mono.just(user);
                 });
     }
 
